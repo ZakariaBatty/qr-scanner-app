@@ -1,4 +1,3 @@
-// ✅ QRScanner.tsx - Updated version (Step 1/5)
 "use client"
 
 import { useEffect, useRef, useState } from "react"
@@ -25,6 +24,7 @@ export default function QRScanner({ onScan }: QRScannerProps) {
         videoRef.current.srcObject = stream
         await videoRef.current.play()
         setIsActive(true)
+        setError("")
       }
     } catch (err: any) {
       setError("Camera access error: " + err.message)
@@ -56,7 +56,6 @@ export default function QRScanner({ onScan }: QRScannerProps) {
     if (code?.data) {
       stopCamera()
       onScan(code.data)
-
     } else {
       requestAnimationFrame(scan)
     }
@@ -74,8 +73,8 @@ export default function QRScanner({ onScan }: QRScannerProps) {
   }, [])
 
   return (
-    <div className="space-y-4">
-      <div className="relative bg-black rounded-lg overflow-hidden aspect-video">
+    <div className="w-full mx-auto p-4 space-y-4">
+      <div className="relative bg-black rounded-lg overflow-hidden aspect-video shadow">
         <video ref={videoRef} className="w-full h-full object-cover" muted playsInline autoPlay />
         {!isActive && (
           <div className="absolute inset-0 flex items-center justify-center text-white bg-black/70">
@@ -86,8 +85,15 @@ export default function QRScanner({ onScan }: QRScannerProps) {
           </div>
         )}
       </div>
+
+      {error && (
+        <div className="text-red-600 text-sm bg-red-100 border border-red-300 rounded p-2">
+          {error}
+        </div>
+      )}
+
       <canvas ref={canvasRef} className="hidden" />
-      {error && <p className="text-red-600 text-sm">{error}</p>}
+
       <div className="flex justify-center gap-2">
         {!isActive ? (
           <Button onClick={startCamera} className="flex items-center gap-2">
@@ -101,7 +107,8 @@ export default function QRScanner({ onScan }: QRScannerProps) {
           </Button>
         )}
       </div>
-      <div className="text-center text-sm text-muted-foreground space-y-2">
+
+      <div className="text-center text-sm text-muted-foreground">
         <p>Position the QR code within the frame to scan</p>
       </div>
     </div>

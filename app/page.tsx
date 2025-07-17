@@ -128,7 +128,6 @@ export default function QRScannerApp() {
         printWindow.document.close()
         printWindow.focus()
 
-        // إضافة تأخير قصير للتأكد من تحميل الصور
         setTimeout(() => {
           printWindow.print()
           printWindow.close()
@@ -217,7 +216,7 @@ export default function QRScannerApp() {
               QR Code Scanner
             </CardTitle>
           </CardHeader>
-          <CardContent className="space-y-4 flex justify-center">
+          <CardContent className="space-y-4 flex flex-col justify-center">
             {error && (
               <Alert variant="destructive">
                 <AlertCircle className="h-4 w-4" />
