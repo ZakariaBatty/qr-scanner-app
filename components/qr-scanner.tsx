@@ -56,6 +56,7 @@ export default function QRScanner({ onScan }: QRScannerProps) {
     if (code?.data) {
       stopCamera()
       onScan(code.data)
+
     } else {
       requestAnimationFrame(scan)
     }
