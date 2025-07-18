@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react"
 import { Camera, CameraOff } from "lucide-react"
 import { Button } from "@/components/ui/button"
+import jsQR from "jsqr"
 
 interface QRScannerProps {
   onScan: (data: string | null) => void
@@ -11,147 +12,70 @@ interface QRScannerProps {
 export default function QRScanner({ onScan }: QRScannerProps) {
   const videoRef = useRef<HTMLVideoElement>(null)
   const canvasRef = useRef<HTMLCanvasElement>(null)
-  const scanIntervalRef = useRef<NodeJS.Timeout | null>(null)
-
   const [isActive, setIsActive] = useState(false)
-  const [isScanning, setIsScanning] = useState(false)
   const [error, setError] = useState<string>("")
 
   const startCamera = async () => {
     try {
-      setError("")
       const stream = await navigator.mediaDevices.getUserMedia({
-        video: {
-          facingMode: "environment",
-          width: { ideal: 1280 },
-          height: { ideal: 720 },
-        },
+        video: { facingMode: "environment" }
       })
-      console.log("🔍 videoRef.current =", videoRef.current)
-      // ✅ انتظر DOM يركب
-      setTimeout(async () => {
-        if (videoRef.current) {
-          videoRef.current.srcObject = stream
-          await videoRef.current.play()
-          setIsActive(true)
-          setIsScanning(true)
-          startScanning()
-        } else {
-          setError("Video element not found")
-        }
-      }, 0)
-    } catch (err: any) {
-      console.error("Camera error:", err)
-      if (err.name === "NotAllowedError") {
-        setError("Camera access denied. Please allow camera access and try again.")
-      } else if (err.name === "NotFoundError") {
-        setError("No camera found on this device.")
-      } else {
-        setError("Camera not available: " + err.message)
+      if (videoRef.current) {
+        videoRef.current.srcObject = stream
+        await videoRef.current.play()
+        setIsActive(true)
+        setError("")
       }
+    } catch (err: any) {
+      setError("Camera access error: " + err.message)
     }
   }
-
 
   const stopCamera = () => {
     if (videoRef.current?.srcObject) {
       const tracks = (videoRef.current.srcObject as MediaStream).getTracks()
       tracks.forEach((track) => track.stop())
-      videoRef.current.srcObject = null
     }
-
     setIsActive(false)
-    setIsScanning(false)
-
-    if (scanIntervalRef.current) {
-      clearInterval(scanIntervalRef.current)
-      scanIntervalRef.current = null
-    }
   }
 
-  const startScanning = () => {
-    if (scanIntervalRef.current) {
-      clearInterval(scanIntervalRef.current)
-    }
-
-    scanIntervalRef.current = setInterval(() => {
-      scanQRCode()
-    }, 300)
-  }
-
-  const scanQRCode = async () => {
-    if (!videoRef.current || !canvasRef.current || !isScanning) return
-
-    const video = videoRef.current
+  const scan = () => {
     const canvas = canvasRef.current
-    const context = canvas.getContext("2d")
+    const video = videoRef.current
+    if (!canvas || !video || !video.videoWidth) return
 
-    if (!context || video.readyState !== video.HAVE_ENOUGH_DATA) return
+    const ctx = canvas.getContext("2d")
+    if (!ctx) return
 
     canvas.width = video.videoWidth
     canvas.height = video.videoHeight
-    context.drawImage(video, 0, 0, canvas.width, canvas.height)
+    ctx.drawImage(video, 0, 0, canvas.width, canvas.height)
+    const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height)
+    const code = jsQR(imageData.data, imageData.width, imageData.height)
 
-    try {
-      const imageData = context.getImageData(0, 0, canvas.width, canvas.height)
-      const qrCode = detectQRPattern(imageData)
-
-      if (qrCode) {
-        setIsScanning(false)
-        onScan(qrCode)
-        stopCamera()
-      }
-    } catch (err) {
-      console.error("QR scan error:", err)
+    if (code?.data) {
+      stopCamera()
+      onScan(code.data)
+    } else {
+      requestAnimationFrame(scan)
     }
-  }
-
-  const detectQRPattern = (imageData: ImageData): string | null => {
-    const { data, width, height } = imageData
-    let darkPixels = 0
-    const totalPixels = width * height
-
-    for (let i = 0; i < data.length; i += 4) {
-      const r = data[i]
-      const g = data[i + 1]
-      const b = data[i + 2]
-      const brightness = (r + g + b) / 3
-      if (brightness < 128) darkPixels++
-    }
-
-    const darkRatio = darkPixels / totalPixels
-    if (darkRatio > 0.2 && darkRatio < 0.8) {
-      return `INVITE-${Math.random().toString(36).substr(2, 7).toUpperCase()}`
-    }
-
-    return null
   }
 
   useEffect(() => {
-    navigator.mediaDevices.enumerateDevices().then((devices) => {
-      const cameras = devices.filter((d) => d.kind === "videoinput")
-      console.log("Cameras found:", cameras)
-    })
+    if (isActive) {
+      requestAnimationFrame(scan)
+    }
+  }, [isActive])
 
+  useEffect(() => {
+    startCamera()
     return () => stopCamera()
   }, [])
 
-  useEffect(() => {
-    console.log("📦 isActive =", isActive)
-  }, [isActive])
-
-
   return (
-    <div className="space-y-4">
-      <div className="relative bg-black rounded-lg overflow-hidden aspect-video">
-        <video
-          ref={videoRef}
-          className={`w-full h-full object-cover ${isActive ? "block" : "hidden"}`}
-          playsInline
-          muted
-          autoPlay
-        />
-
+    <div className="w-full mx-auto p-4 space-y-4">
+      <div className="relative bg-black rounded-lg overflow-hidden aspect-video shadow">
+        <video ref={videoRef} className="w-full h-full object-cover" muted playsInline autoPlay />
         {!isActive && (
           <div className="absolute inset-0 flex items-center justify-center text-white bg-black/70">
             <div className="text-center">
@@ -162,14 +86,13 @@ export default function QRScanner({ onScan }: QRScannerProps) {
         )}
       </div>
 
-
-      <canvas ref={canvasRef} className="hidden" />
-
       {error && (
-        <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded text-sm">
+        <div className="text-red-600 text-sm bg-red-100 border border-red-300 rounded p-2">
           {error}
         </div>
       )}
+
+      <canvas ref={canvasRef} className="hidden" />
 
       <div className="flex justify-center gap-2">
         {!isActive ? (
@@ -185,22 +108,8 @@ export default function QRScanner({ onScan }: QRScannerProps) {
         )}
       </div>
 
-      <div className="text-center text-sm text-muted-foreground space-y-2">
+      <div className="text-center text-sm text-muted-foreground">
         <p>Position the QR code within the frame to scan</p>
-        <div className="border-t pt-2">
-          <p className="text-xs font-medium mb-2">Test with these sample codes:</p>
-          <div className="flex flex-wrap gap-2 justify-center">
-            <Button variant="ghost" size="sm" onClick={() => onScan("INVITE-49XA1KD")} className="text-xs">
-              INVITE-49XA1KD
-            </Button>
-            <Button variant="ghost" size="sm" onClick={() => onScan("INVITE-ABC123X")} className="text-xs">
-              INVITE-ABC123X
-            </Button>
-            <Button variant="ghost" size="sm" onClick={() => onScan("INVITE-XYZ789P")} className="text-xs">
-              INVITE-XYZ789P
-            </Button>
-          </div>
-        </div>
       </div>
     </div>
   )
