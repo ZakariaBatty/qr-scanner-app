@@ -70,7 +70,7 @@ export default function EventBadge({ data }: InviteData) {
             className="rounded-md border border-white"
           />
           <div className="flex-1 ml-3">
-            <p className="text-base font-bold text-white">{data.name}</p>
+            <p className="text-base font-bold text-white">{data.name.toUpperCase()}</p>
             <p className="text-xs uppercase font-medium opacity-80 text-white">{data.type}</p>
           </div>
           <Image
@@ -96,7 +96,7 @@ export default function EventBadge({ data }: InviteData) {
                   }}
                   className="px-2 py-1 rounded-full"
                 >
-                  {room.title}
+                  {room.title.toLowerCase()}
                 </span>
               ))}
             </div>

@@ -106,111 +106,124 @@ export default function QRScannerApp() {
   `
     ).join("") || "";
 
-    const printWindow = window.open("", "_blank");
-    if (printWindow) {
-      printWindow.document.write(`
-    <html>
-      <head>
-        <title>Print Badge</title>
-        <style>
-          @page { 
-            size: 10cm 14cm; /* حجم الصفحة بالضبط حجم البطاقة مع مساحة صغيرة */
-            margin: 0.5cm; 
-          }
-          body {
-            margin: 0;
-            padding: 0;
-            background: white;
-            -webkit-print-color-adjust: exact;
-            color-adjust: exact;
-            print-color-adjust: exact;
-            font-family: Arial, sans-serif;
-            width: 9cm;
-            height: 13cm;
-          }
-          .badge {
-            width: 9cm;
-            height: 13cm;
-            background: url('${event.coverImage}') center center / cover no-repeat;
-            background-color: ${event.backgroundColor};
-            border-radius: 10px;
-            display: flex;
-            flex-direction: column;
-            justify-content: flex-end;
-            overflow: hidden;
-            color: ${event.foregroundColor};
-            box-sizing: border-box;
-          }
-          .footer {
-            background: rgba(0, 0, 0, 0.6);
-            padding: 16px;
-            display: flex;
-            flex-direction: column;
-            gap: 12px;
-          }
-          .top-row {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-          }
-          .avatar {
-            width: 60px;
-            height: 60px;
-            border-radius: 8px;
-            border: 2px solid white;
-            object-fit: cover;
-          }
-          .qr {
-            width: 60px;
-            height: 60px;
-          }
-          .name-type {
-            flex: 1;
-            margin-left: 12px;
-          }
-          .name {
-            font-size: 16px;
-            font-weight: bold;
-            color: white;
-          }
-          .type {
-            font-size: 10px;
-            text-transform: uppercase;
-            color: white;
-            opacity: 0.8;
-          }
-          .rooms {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 4px;
-          }
-        </style>
-      </head>
-      <body>
-        <div class="badge">
-          <div class="footer">
-            <div class="top-row">
-              <img src="${logo || event.logo}" class="avatar" />
-              <div class="name-type">
-                <div class="name">${name}</div>
-                <div class="type">${type}</div>
+    // إنشاء iframe مخفي
+    const iframe = document.createElement('iframe');
+    iframe.style.position = 'absolute';
+    iframe.style.width = '0';
+    iframe.style.height = '0';
+    iframe.style.border = 'none';
+
+    document.body.appendChild(iframe);
+
+    const doc = iframe.contentWindow?.document;
+    if (doc) {
+      doc.open();
+      doc.write(`
+      <html>
+        <head>
+          <title>Print Badge</title>
+          <style>
+            @page { 
+              size: 10cm 14cm;
+              margin: 0.5cm; 
+            }
+            body {
+              margin: 0;
+              padding: 0;
+              background: white;
+              -webkit-print-color-adjust: exact;
+              color-adjust: exact;
+              print-color-adjust: exact;
+              font-family: Arial, sans-serif;
+              width: 9cm;
+              height: 13cm;
+            }
+            .badge {
+              width: 9cm;
+              height: 13cm;
+              background: url('${event.coverImage}') center center / cover no-repeat;
+              background-color: ${event.backgroundColor};
+              border-radius: 10px;
+              display: flex;
+              flex-direction: column;
+              justify-content: flex-end;
+              overflow: hidden;
+              color: ${event.foregroundColor};
+              box-sizing: border-box;
+            }
+            .footer {
+              background: rgba(0, 0, 0, 0.6);
+              padding: 16px;
+              display: flex;
+              flex-direction: column;
+              gap: 12px;
+            }
+            .top-row {
+              display: flex;
+              align-items: center;
+              justify-content: space-between;
+            }
+            .avatar {
+              width: 60px;
+              height: 60px;
+              border-radius: 8px;
+              border: 2px solid white;
+              object-fit: cover;
+            }
+            .qr {
+              width: 60px;
+              height: 60px;
+            }
+            .name-type {
+              flex: 1;
+              margin-left: 12px;
+            }
+            .name {
+              font-size: 16px;
+              font-weight: bold;
+              color: white;
+            }
+            .type {
+              font-size: 10px;
+              text-transform: uppercase;
+              color: white;
+              opacity: 0.8;
+            }
+            .rooms {
+              display: flex;
+              flex-wrap: wrap;
+              gap: 4px;
+            }
+          </style>
+        </head>
+        <body>
+          <div class="badge">
+            <div class="footer">
+              <div class="top-row">
+                <img src="${logo || event.logo}" class="avatar" />
+                <div class="name-type">
+                  <div class="name">${name}</div>
+                  <div class="type">${type}</div>
+                </div>
+                <img src="${qrImageUrl}" class="qr" />
               </div>
-              <img src="${qrImageUrl}" class="qr" />
+              <div class="rooms">${roomsHtml}</div>
             </div>
-            <div class="rooms">${roomsHtml}</div>
           </div>
-        </div>
-      </body>
-    </html>
-  `);
+        </body>
+      </html>
+    `);
+      doc.close();
 
-      printWindow.document.close();
-      printWindow.focus();
-
+      // انتظار تحميل الصور ثم طباعة
       setTimeout(() => {
-        printWindow.print();
-        printWindow.close();
-      }, 800);
+        iframe.contentWindow?.print();
+
+        // حذف الـ iframe بعد الطباعة
+        setTimeout(() => {
+          document.body.removeChild(iframe);
+        }, 1000);
+      }, 1000);
     }
   };
 
