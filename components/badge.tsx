@@ -17,6 +17,13 @@ interface InviteData {
       backgroundColor: string
       foregroundColor: string
     }
+    badge: {
+      id: string
+      name: string
+      mockupImageUrl: string
+      backgroundColor: string
+      foregroundColor: string
+    }
     ateliers: {
       title: string
       startDate: string
@@ -29,40 +36,41 @@ export default function EventBadge({ data }: InviteData) {
   return (
     <div
       style={{
-        background: `url(${data.event.coverImage}) center center / cover no-repeat`,
-        backgroundColor: data.event.backgroundColor,
+        backgroundImage: `url(${data.badge.mockupImageUrl})`,
+        backgroundPosition: "center center",
+        backgroundSize: "cover",
+        backgroundRepeat: "no-repeat",
+        backgroundColor: "#fff",
         WebkitPrintColorAdjust: 'exact',
         colorAdjust: 'exact',
         printColorAdjust: 'exact'
       }}
       className="w-[340px] h-[500px] rounded-lg shadow-lg border border-gray-300 font-sans text-sm bg-white print-colors-exact flex flex-col justify-between"
     >
-      {/* === TOP (يمكن تخلّي مكانه فارغ أو تضيف شعار فوق) === */}
       <div className="p-4">
-        {/* تقدر تضيف شي معلومات هنا مستقبلاً */}
+        {/* for position */}
       </div>
 
-      {/* === FOOTER المحتوى الرئيسي === */}
+      {/* === FOOTER=== */}
       <div
         style={{
-          color: data.event.foregroundColor,
-          backgroundColor: "rgba(0, 0, 0, 0.5)",
-          WebkitPrintColorAdjust: 'exact',
-          colorAdjust: 'exact',
-          printColorAdjust: 'exact'
+          backgroundColor: `${data.badge.backgroundColor}CC`, // Adding transparency to background color
+          WebkitPrintColorAdjust: "exact",
+          colorAdjust: "exact",
+          printColorAdjust: "exact",
         }}
         className="px-4 py-3 text-left flex flex-col gap-2"
       >
         <div className="flex justify-between items-center">
           <Image
-            src={data.logo || data.event.logo}
+            src={data.logo || "/dummy-avatar.jpg"}
             alt="Avatar"
             width={60}
             height={60}
             className="rounded-md border border-white"
           />
           <div className="flex-1 ml-3">
-            <p className="text-base font-bold text-white">{data.name}</p>
+            <p className="text-base font-bold text-white">{data.name.toUpperCase()}</p>
             <p className="text-xs uppercase font-medium opacity-80 text-white">{data.type}</p>
           </div>
           <Image
@@ -82,13 +90,13 @@ export default function EventBadge({ data }: InviteData) {
                 <span
                   key={index}
                   style={{
-                    color: data.event.foregroundColor,
-                    border: `1px solid ${data.event.backgroundColor}`,
-                    backgroundColor: 'white'
+                    color: data.badge.backgroundColor,
+                    border: `1px solid ${data.badge.foregroundColor}`,
+                    backgroundColor: data.badge.foregroundColor
                   }}
                   className="px-2 py-1 rounded-full"
                 >
-                  {room.title}
+                  {room.title.toLowerCase()}
                 </span>
               ))}
             </div>

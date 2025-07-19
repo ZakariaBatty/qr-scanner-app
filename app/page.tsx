@@ -26,6 +26,13 @@ interface InviteData {
       backgroundColor: string
       foregroundColor: string
     }
+    badge: {
+      id: string
+      name: string
+      mockupImageUrl: string
+      backgroundColor: string
+      foregroundColor: string
+    }
     ateliers: {
       title: string
       location: string
@@ -60,6 +67,7 @@ export default function QRScannerApp() {
         if (!res.ok) throw new Error(await res.text())
 
         const json = await res.json()
+        console.log(json)
         setInviteData(json)
         setIsScanning(false)
       } catch (err: any) {
@@ -83,29 +91,42 @@ export default function QRScannerApp() {
 
     const roomsHtml = ateliers?.map(
       (room) => `
-      <span style="
-        padding: 4px 8px;
-        border-radius: 9999px;
-        font-size: 12px;
-        background: white;
-        color: ${event.foregroundColor};
-        border: 1px solid ${event.backgroundColor};
-        display: inline-block;
-        margin: 2px;
-      ">
-        ${room.title}
-      </span>
-    `
+    <span style="
+      padding: 4px 8px;
+      border-radius: 9999px;
+      font-size: 12px;
+      background: white;
+      color: ${event.foregroundColor};
+      border: 1px solid ${event.backgroundColor};
+      display: inline-block;
+      margin: 2px;
+    ">
+      ${room.title}
+    </span>
+  `
     ).join("") || "";
 
-    const printWindow = window.open("", "_blank");
-    if (printWindow) {
-      printWindow.document.write(`
+    // إنشاء iframe مخفي
+    const iframe = document.createElement('iframe');
+    iframe.style.position = 'absolute';
+    iframe.style.width = '0';
+    iframe.style.height = '0';
+    iframe.style.border = 'none';
+
+    document.body.appendChild(iframe);
+
+    const doc = iframe.contentWindow?.document;
+    if (doc) {
+      doc.open();
+      doc.write(`
       <html>
         <head>
           <title>Print Badge</title>
           <style>
-            @page { size: A4; margin: 20px; }
+            @page { 
+              size: 10cm 14cm;
+              margin: 0.5cm; 
+            }
             body {
               margin: 0;
               padding: 0;
@@ -114,10 +135,8 @@ export default function QRScannerApp() {
               color-adjust: exact;
               print-color-adjust: exact;
               font-family: Arial, sans-serif;
-              display: flex;
-              justify-content: center;
-              align-items: center;
-              height: 100vh;
+              width: 9cm;
+              height: 13cm;
             }
             .badge {
               width: 9cm;
@@ -125,12 +144,12 @@ export default function QRScannerApp() {
               background: url('${event.coverImage}') center center / cover no-repeat;
               background-color: ${event.backgroundColor};
               border-radius: 10px;
-              box-shadow: 0 0 8px rgba(0,0,0,0.2);
               display: flex;
               flex-direction: column;
               justify-content: flex-end;
               overflow: hidden;
               color: ${event.foregroundColor};
+              box-sizing: border-box;
             }
             .footer {
               background: rgba(0, 0, 0, 0.6);
@@ -170,6 +189,11 @@ export default function QRScannerApp() {
               color: white;
               opacity: 0.8;
             }
+            .rooms {
+              display: flex;
+              flex-wrap: wrap;
+              gap: 4px;
+            }
           </style>
         </head>
         <body>
@@ -189,98 +213,20 @@ export default function QRScannerApp() {
         </body>
       </html>
     `);
+      doc.close();
 
-      printWindow.document.close();
-      printWindow.focus();
-
+      // انتظار تحميل الصور ثم طباعة
       setTimeout(() => {
-        printWindow.print();
-        printWindow.close();
-      }, 800);
+        iframe.contentWindow?.print();
+
+        // حذف الـ iframe بعد الطباعة
+        setTimeout(() => {
+          document.body.removeChild(iframe);
+        }, 1000);
+      }, 1000);
     }
   };
 
-
-  const handleSaveAsPDF = () => {
-    if (badgeRef.current) {
-      const printWindow = window.open("", "_blank")
-      if (printWindow) {
-        printWindow.document.write(`
-          <html>
-            <head>
-              <title>Badge - ${inviteData?.name || 'Badge'}</title>
-              <style>
-                @page {
-                  size: A4;
-                  margin: 20px;
-                }
-                body {
-                  margin: 0;
-                  padding: 20px;
-                  background: white;
-                  -webkit-print-color-adjust: exact !important;
-                  color-adjust: exact !important;
-                  print-color-adjust: exact !important;
-                  font-family: Arial, sans-serif;
-                }
-                .badge-container {
-                  display: flex;
-                  justify-content: center;
-                  align-items: center;
-                  min-height: 100vh;
-                  background: white;
-                }
-                .badge-content {
-                  width: 9cm;
-                  height: 13cm;
-                  background: white;
-                  box-shadow: 0 4px 8px rgba(0,0,0,0.1);
-                  border-radius: 8px;
-                  overflow: hidden;
-                }
-                .badge-content > div {
-                  width: 100% !important;
-                  height: 100% !important;
-                  border-radius: 8px !important;
-                }
-                * {
-                  -webkit-print-color-adjust: exact !important;
-                  color-adjust: exact !important;
-                  print-color-adjust: exact !important;
-                }
-                @media print {
-                  body {
-                    padding: 0;
-                    margin: 0;
-                  }
-                  .badge-container {
-                    min-height: auto;
-                    padding: 20px;
-                  }
-                }
-              </style>
-            </head>
-            <body>
-              <div class="badge-container">
-                <div class="badge-content">
-                  ${badgeRef.current.innerHTML}
-                </div>
-              </div>
-              <script>
-                window.onload = function() {
-                  setTimeout(() => {
-                    window.print();
-                  }, 1000);
-                }
-              </script>
-            </body>
-          </html>
-        `);
-
-        printWindow.document.close()
-      }
-    }
-  }
 
   const resetScanner = () => {
     setResult("")
@@ -325,14 +271,6 @@ export default function QRScannerApp() {
                     <Print className="h-4 w-4" />
                     Print Badge
                   </Button>
-                  {/* <Button
-                    onClick={handleSaveAsPDF}
-                    variant="outline"
-                    className="flex items-center gap-2"
-                  >
-                    <Download className="h-4 w-4" />
-                    Save as PDF
-                  </Button> */}
                   <Button variant="outline" onClick={resetScanner} className="flex items-center gap-2 bg-transparent">
                     <RotateCcw className="h-4 w-4" />
                     Scan Another
